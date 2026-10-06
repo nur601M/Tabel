@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ky">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<meta name="robots" content="noindex">
+<title>Табель — кызматкер</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  body{font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+  @keyframes up{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+  .up{animation:up .25s ease-out}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spin{animation:spin .8s linear infinite}
+</style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
+
+<div class="max-w-md mx-auto min-h-screen flex flex-col" style="padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)">
+
+  <!-- Загрузка -->
+  <section id="s-loading" class="flex-1 flex items-center justify-center">
+    <div class="w-10 h-10 rounded-full border-4 border-teal-600 border-t-transparent spin"></div>
+  </section>
+
+  <!-- Ката -->
+  <section id="s-fatal" class="hidden flex-1 flex flex-col items-center justify-center text-center p-6">
+    <div class="text-5xl">📡</div>
+    <p id="fatalMsg" class="mt-4 text-slate-600 dark:text-slate-300"></p>
+    <button onclick="init()" class="mt-5 rounded-xl bg-teal-600 text-white font-semibold px-6 py-3">Кайра аракет кылуу</button>
+  </section>
+
+  <!-- Каттоо (1 жолу) -->
+  <section id="s-register" class="hidden flex-1 flex flex-col">
+    <div class="bg-gradient-to-br from-teal-700 to-emerald-500 text-white px-6 pt-10 pb-14 rounded-b-[2rem]">
+      <p class="text-teal-100 text-sm font-medium">Төрт-Гүл айыл өкмөтү</p>
+      <h1 class="text-2xl font-extrabold mt-1">Телефонду каттоо</h1>
+      <p class="text-teal-50/90 text-sm mt-2">Бул бир жолу гана жасалат. Кийин QR-кодду сканерлеп эле белгилейсиз.</p>
+    </div>
+    <div class="px-5 -mt-8 up">
+      <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm p-5">
+        <label class="block text-sm font-semibold">Логин</label>
+        <input id="rLogin" autocapitalize="none" autocomplete="username" class="mt-1.5 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500">
+        <label class="block text-sm font-semibold mt-4">Сыр сөз</label>
+        <input id="rPass" type="password" autocomplete="current-password" class="mt-1.5 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-teal-500">
+        <p id="rErr" class="hidden mt-3 text-sm text-rose-600 dark:text-rose-400"></p>
+        <button id="rBtn" class="mt-5 w-full rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white font-semibold py-3.5">Каттоо</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Негизги экран -->
+  <section id="s-main" class="hidden flex-1 flex flex-col">
+    <div class="bg-gradient-to-br from-teal-700 to-emerald-500 text-white px-6 pt-8 pb-16 rounded-b-[2rem]">
+      <div class="flex items-center justify-between text-teal-100 text-sm">
+        <span id="date"></span><span id="clock" class="font-semibold tabular-nums"></span>
+      </div>
+      <h1 id="uName" class="text-2xl font-extrabold mt-3 leading-tight"></h1>
+      <p id="uPos" class="text-teal-50/90 text-sm mt-0.5"></p>
+    </div>
+
+    <div class="px-5 -mt-9 up">
+      <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm p-4">
+        <p class="text-xs text-slate-500 dark:text-slate-400">Азыркы абалыңыз</p>
+        <p id="stText" class="text-lg font-bold mt-0.5"></p>
+        <p id="stSub" class="text-sm text-slate-500 dark:text-slate-400"></p>
+      </div>
+    </div>
+
+    <div id="qrWarn" class="hidden mx-5 mt-3 rounded-2xl bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 p-3.5 text-sm">
+      📷 Белгилөө үчүн имараттагы <b>QR-кодду</b> телефондун камерасы менен сканерлеңиз.
+    </div>
+
+    <div id="btns" class="px-5 mt-4 grid gap-3 pb-8"></div>
+  </section>
+</div>
+
+<!-- Иш сапар: кайда жана эмне үчүн -->
+<div id="tripBox" class="hidden fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm flex items-end justify-center" onclick="if(event.target===this)closeTrip()">
+  <div class="up w-full max-w-md bg-white dark:bg-slate-900 rounded-t-3xl p-5" style="padding-bottom:calc(1.25rem + env(safe-area-inset-bottom))">
+    <h2 class="text-lg font-bold">Иш сапар</h2>
+    <p class="text-sm text-slate-500 dark:text-slate-400">Кайда жана эмне жумуш менен барасыз?</p>
+    <textarea id="tripText" rows="3" maxlength="200" placeholder="Мисалы: Чоң-Талаа айылы, суу маселеси боюнча" class="mt-3 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+    <p id="tripErr" class="hidden text-sm text-rose-600 mt-1"></p>
+    <div class="grid grid-cols-2 gap-3 mt-4">
+      <button onclick="closeTrip()" class="rounded-xl bg-slate-100 dark:bg-slate-800 py-3 font-semibold">Жок</button>
+      <button onclick="confirmTrip()" class="rounded-xl bg-amber-500 text-white py-3 font-semibold">Жөнөтүү</button>
+    </div>
+  </div>
+</div>
+
+<!-- Күтүү -->
+<div id="busy" class="hidden fixed inset-0 z-50 bg-slate-900/70 flex flex-col items-center justify-center text-white">
+  <div class="w-12 h-12 rounded-full border-4 border-white border-t-transparent spin"></div>
+  <p id="busyText" class="mt-4 font-medium"></p>
+</div>
+
+<!-- Билдирүү -->
+<div id="toast" class="hidden fixed left-4 right-4 z-50 max-w-md mx-auto rounded-2xl p-4 text-sm font-semibold shadow-xl up" style="bottom:calc(1rem + env(safe-area-inset-bottom))"></div>
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbzYA5wwQk78ipkx7U3j-XnFTkP3I2Lb3cghY8Nlj957CZJ2eqTCuJd67qzjtMiyhfkL/exec';
+const QR_TTL = 15 * 60 * 1000;   // QR ачкыч 15 мүнөт эсинде сакталат
+const $ = id => document.getElementById(id);
+let me = null;
+
+/* ---- QR ачкычы шилтемеден алынат (?k=...) ---- */
+(function () {
+  const k = new URLSearchParams(location.search).get('k');
+  if (k) {
+    try { localStorage.setItem('qr', JSON.stringify({ k: k, t: Date.now() })); } catch (e) {}
+    history.replaceState(null, '', location.pathname);
+  }
+})();
+function qrKey() {
+  try {
+    const o = JSON.parse(localStorage.getItem('qr') || 'null');
+    if (o && Date.now() - o.t < QR_TTL) return o.k;
+  } catch (e) {}
+  return '';
+}
+
+/* ---- Телефондун туруктуу ачкычы ---- */
+function deviceKey() {
+  let k = localStorage.getItem('dk');
+  if (!k || !/^[a-f0-9]{32}$/.test(k)) {
+    k = [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join('');
+    localStorage.setItem('dk', k);
+  }
+  return k;
+}
+
+async function api(body) {
+  const r = await fetch(API, { method: 'POST', body: JSON.stringify(body) });
+  const j = await r.json();
+  if (!j.ok) { const e = new Error(j.message || 'Ката кетти'); e.code = j.code; throw e; }
+  return j.data;
+}
+
+function show(id) {
+  ['loading', 'fatal', 'register', 'main'].forEach(s => $('s-' + s).classList.toggle('hidden', s !== id));
+}
+function toast(msg, type) {
+  const t = $('toast');
+  t.className = 'fixed left-4 right-4 z-50 max-w-md mx-auto rounded-2xl p-4 text-sm font-semibold shadow-xl up ' +
+    (type === 'ok' ? 'bg-emerald-600 text-white' : type === 'warn' ? 'bg-amber-500 text-white' : 'bg-rose-600 text-white');
+  t.style.bottom = 'calc(1rem + env(safe-area-inset-bottom))';
+  t.textContent = msg;
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.add('hidden'), 6000);
+}
+function busy(msg) { $('busyText').textContent = msg || ''; $('busy').classList.toggle('hidden', !msg); }
+
+/* ---- Баштоо ---- */
+async function init() {
+  show('loading');
+  try {
+    me = await api({ action: 'me', deviceKey: deviceKey() });
+    show('main'); renderMain();
+  } catch (e) {
+    if (e.code === 'AUTH') show('register');
+    else { $('fatalMsg').textContent = 'Байланыш жок же сервер жооп бербейт. Интернетти текшериңиз. (' + (e.message || e) + ')'; show('fatal'); }
+  }
+}
+
+/* ---- Каттоо ---- */
+$('rBtn').addEventListener('click', async () => {
+  const err = $('rErr'); err.classList.add('hidden');
+  const login = $('rLogin').value.trim(), password = $('rPass').value;
+  if (!login || !password) { err.textContent = 'Логин жана сыр сөздү жазыңыз.'; err.classList.remove('hidden'); return; }
+  $('rBtn').disabled = true; $('rBtn').textContent = 'Текшерилүүдө…';
+  try {
+    await api({ action: 'register', login, password, deviceKey: deviceKey() });
+    $('rPass').value = '';
+    await init();
+  } catch (e) { err.textContent = e.message; err.classList.remove('hidden'); }
+  $('rBtn').disabled = false; $('rBtn').textContent = 'Каттоо';
+});
+
+/* ---- Негизги экран ---- */
+const BTN = {
+  arrived:  { t: '🟢 Жумушка келдим',      c: 'bg-emerald-600' },
+  travel:   { t: '🟡 Иш сапарга чыгуу',     c: 'bg-amber-500' },
+  returned: { t: '🔵 Иш сапардан кайттым',  c: 'bg-sky-600' },
+  left:     { t: '🔴 Жумуш аяктады (Кеттим)', c: 'bg-rose-600' }
+};
+const STATE_TXT = {
+  none: 'Бүгүн белгиленген жок', arrived: '🟢 Иштеп жатасыз', travel: '🟡 Иш сапардасыз',
+  returned: '🟢 Иштеп жатасыз (сапардан кайттыңыз)', left: '🔴 Жумуш аяктады'
+};
+
+function renderMain() {
+  $('uName').textContent = me.user.name;
+  $('uPos').textContent = me.user.position;
+  $('stText').textContent = STATE_TXT[me.state] || '';
+  $('stSub').textContent = (me.since ? 'Саат ' + me.since : '') + (me.state === 'travel' && me.details ? ' · ' + me.details : '');
+  const haveQr = !!qrKey();
+  $('qrWarn').classList.toggle('hidden', haveQr);
+  $('btns').innerHTML = Object.keys(BTN).map(k => {
+    const ok = me.allowed.includes(k) && haveQr;
+    return `<button onclick="press('${k}')" ${ok ? '' : 'disabled'} class="${BTN[k].c} text-white rounded-2xl py-5 text-lg font-bold shadow-md active:scale-[.97] transition ${ok ? '' : 'opacity-30'}">${BTN[k].t}</button>`;
+  }).join('');
+}
+
+function tick() {
+  const d = new Date();
+  $('clock').textContent = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  $('date').textContent = d.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+setInterval(tick, 1000); tick();
+
+function press(code) {
+  if (!qrKey()) return renderMain();
+  if (code === 'travel') { $('tripText').value = ''; $('tripErr').classList.add('hidden'); $('tripBox').classList.remove('hidden'); return; }
+  submit(code, '');
+}
+function closeTrip() { $('tripBox').classList.add('hidden'); }
+function confirmTrip() {
+  const v = $('tripText').value.trim();
+  if (v.length < 3) { $('tripErr').textContent = 'Кайда жана эмне үчүн баратканыңызды жазыңыз.'; $('tripErr').classList.remove('hidden'); return; }
+  closeTrip(); submit('travel', v);
+}
+
+const getPos = () => new Promise((res, rej) => {
+  if (!navigator.geolocation) return rej(new Error('Бул түзмөктө GPS жок.'));
+  navigator.geolocation.getCurrentPosition(p => res(p.coords),
+    e => rej(new Error(e.code === 1
+      ? 'Геолокацияга уруксат бериңиз (браузердин жөндөөлөрүнөн).'
+      : 'GPS координаты алынган жок. Ачык жерге чыгып, кайра аракет кылыңыз.')),
+    { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+});
+
+async function submit(code, details) {
+  try {
+    busy('GPS аныкталууда…');
+    const c = await getPos();
+    busy('Жөнөтүлүүдө…');
+    const r = await api({ action: 'status', deviceKey: deviceKey(), status: code, details,
+      qrKey: qrKey(), lat: c.latitude, lng: c.longitude, accuracy: c.accuracy });
+    me.state = r.state; me.since = r.since; me.allowed = r.allowed; me.details = details;
+    renderMain();
+    let msg = '✅ Белгиленди: ' + r.since, type = 'ok';
+    if (code === 'arrived' && r.late) { msg += ' (кечиктиңиз)'; type = 'warn'; }
+    if (code === 'left' && r.hoursWorked !== '') msg += ' · бүгүн ' + r.hoursWorked + ' саат иштедиңиз';
+    toast(msg, type);
+  } catch (e) {
+    if (e.code === 'AUTH') { busy(''); return show('register'); }
+    if (e.code === 'QR_INVALID') { try { localStorage.removeItem('qr'); } catch (x) {} renderMain(); }
+    toast(e.message || 'Ката кетти', 'err');
+  }
+  busy('');
+}
+
+init();
+</script>
+</body>
+</html>
