@@ -82,6 +82,7 @@
     <div id="btns" class="px-5 mt-4 grid gap-3"></div>
     <div class="px-5 mt-4 pb-8 grid gap-3">
       <button id="adminBtn" class="hidden w-full rounded-2xl bg-slate-800 text-white py-3.5 font-semibold" onclick="openAdmin()">👥 Башкаларды белгилөө (администратор)</button>
+      <button id="pushBtn" class="hidden w-full rounded-2xl border border-slate-300 dark:border-slate-700 py-3.5 font-semibold" onclick="pushSync(true)">🔔 Эскертмелерди иштетүү</button>
       <button id="install" class="hidden w-full rounded-2xl border border-teal-600 text-teal-700 dark:text-teal-300 py-3.5 font-semibold">📲 Телефонго орнотуу</button>
     </div>
   </section>
@@ -209,6 +210,7 @@ async function init() {
   try {
     me = await api({ action: 'me', deviceKey: deviceKey() });
     show('main'); renderMain();
+    pushSync(false); updatePushBtn();
   } catch (e) {
     if (e.code === 'AUTH') show('register');
     else { $('fatalMsg').textContent = 'Байланыш жок же сервер жооп бербейт. Интернетти текшериңиз. (' + (e.message || e) + ')'; show('fatal'); }
@@ -346,6 +348,46 @@ async function submitAdmin() {
     toast('✅ Белгиленди: ' + r.date + ' ' + r.time, 'ok');
   } catch (e) { err(e.message || 'Ката кетти'); }
   busy('');
+}
+
+/* ---- Эскертмелер: Push (Android Chrome) ---- */
+const pushOK = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+
+function b64uToBytes(s) {
+  const bin = atob((s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from([...bin].map(c => c.charCodeAt(0)));
+}
+
+function updatePushBtn() {
+  const on = pushOK && Notification.permission === 'granted' && localStorage.getItem('pushEp');
+  $('pushBtn').classList.toggle('hidden', !pushOK || !!on);
+}
+
+async function pushSync(ask) {
+  if (!pushOK) return;
+  try {
+    if (ask && Notification.permission === 'denied') {
+      toast('Эскертмелерге уруксат берилген эмес. Браузердин жөндөөлөрүнөн (сайттын жөндөөлөрү → Эскертмелер) уруксат бериңиз.', 'err');
+      return;
+    }
+    if (ask && Notification.permission === 'default') await Notification.requestPermission();
+    if (Notification.permission !== 'granted') { updatePushBtn(); return; }
+
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      const k = (await api({ action: 'pushKey' })).key;
+      sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uToBytes(k) });
+    }
+    if (localStorage.getItem('pushEp') !== sub.endpoint) {
+      await api({ action: 'pushSubscribe', deviceKey: deviceKey(), endpoint: sub.endpoint });
+      localStorage.setItem('pushEp', sub.endpoint);
+    }
+    if (ask) toast('🔔 Эскертмелер иштетилди', 'ok');
+  } catch (e) {
+    if (ask) toast(e.message || 'Эскертмелерди иштетүү мүмкүн болгон жок', 'err');
+  }
+  updatePushBtn();
 }
 
 /* ---- Телефонго орнотуу (Android) ---- */
