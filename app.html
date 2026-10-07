@@ -80,7 +80,8 @@
     </div>
 
     <div id="btns" class="px-5 mt-4 grid gap-3"></div>
-    <div class="px-5 mt-4 pb-8">
+    <div class="px-5 mt-4 pb-8 grid gap-3">
+      <button id="adminBtn" class="hidden w-full rounded-2xl bg-slate-800 text-white py-3.5 font-semibold" onclick="openAdmin()">👥 Башкаларды белгилөө (администратор)</button>
       <button id="install" class="hidden w-full rounded-2xl border border-teal-600 text-teal-700 dark:text-teal-300 py-3.5 font-semibold">📲 Телефонго орнотуу</button>
     </div>
   </section>
@@ -96,6 +97,47 @@
     <div class="grid grid-cols-2 gap-3 mt-4">
       <button onclick="closeTrip()" class="rounded-xl bg-slate-100 dark:bg-slate-800 py-3 font-semibold">Жок</button>
       <button onclick="confirmTrip()" class="rounded-xl bg-amber-500 text-white py-3 font-semibold">Жөнөтүү</button>
+    </div>
+  </div>
+</div>
+
+<!-- Администратор: башкаларды белгилөө -->
+<div id="adminBox" class="hidden fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm flex items-end justify-center" onclick="if(event.target===this)closeAdmin()">
+  <div class="up w-full max-w-md bg-white dark:bg-slate-900 rounded-t-3xl p-5 max-h-[92vh] overflow-y-auto" style="padding-bottom:calc(1.25rem + env(safe-area-inset-bottom))">
+    <h2 class="text-lg font-bold">Башка кызматкерди белгилөө</h2>
+    <p class="text-sm text-slate-500 dark:text-slate-400">Журналга сиздин атыңыз жана себеп жазылат.</p>
+
+    <label class="block mt-4 text-sm font-semibold">Кызматкер</label>
+    <select id="aEmp" class="mt-1.5 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-3 text-base"></select>
+
+    <label class="block mt-3 text-sm font-semibold">Статус</label>
+    <select id="aStatus" onchange="$('aDetailsBox').classList.toggle('hidden', this.value!=='travel')" class="mt-1.5 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-3 text-base">
+      <option value="arrived">🟢 Жумушка келди</option>
+      <option value="travel">🟡 Иш сапарга чыкты</option>
+      <option value="returned">🔵 Иш сапардан кайтты</option>
+      <option value="left">🔴 Жумуш аяктады</option>
+    </select>
+
+    <div id="aDetailsBox" class="hidden">
+      <label class="block mt-3 text-sm font-semibold">Иш сапардын багыты</label>
+      <input id="aDetails" maxlength="200" class="mt-1.5 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-3 text-base">
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 mt-3">
+      <div><label class="block text-sm font-semibold">Күнү</label>
+        <input id="aDate" type="date" class="mt-1.5 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-3 text-base"></div>
+      <div><label class="block text-sm font-semibold">Убакыты</label>
+        <input id="aTime" type="time" class="mt-1.5 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-3 text-base"></div>
+    </div>
+    <p class="text-xs text-slate-400 mt-1">Бүгүнкү күн үчүн убакыт бош калса — азыркы убакыт алынат. Өткөн күн үчүн убакыт милдеттүү.</p>
+
+    <label class="block mt-3 text-sm font-semibold">Себеби <span class="text-rose-500">*</span></label>
+    <input id="aReason" maxlength="200" placeholder="Мисалы: телефону отуруп калды" class="mt-1.5 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3.5 py-3 text-base">
+
+    <p id="aErr" class="hidden mt-3 text-sm text-rose-600 dark:text-rose-400"></p>
+    <div class="grid grid-cols-2 gap-3 mt-4">
+      <button onclick="closeAdmin()" class="rounded-xl bg-slate-100 dark:bg-slate-800 py-3 font-semibold">Жабуу</button>
+      <button onclick="submitAdmin()" class="rounded-xl bg-teal-600 text-white py-3 font-semibold">Белгилөө</button>
     </div>
   </div>
 </div>
@@ -202,6 +244,7 @@ const STATE_TXT = {
 function renderMain() {
   $('uName').textContent = me.user.name;
   $('uPos').textContent = me.user.position;
+  $('adminBtn').classList.toggle('hidden', !me.admin);
   if (me.tracked === false) {
     $('stText').textContent = 'Күнүмдүк белгилөө талап кылынбайт';
     $('stSub').textContent = 'Сиз үчүн келүү-кетүүнү белгилөө милдеттүү эмес.';
@@ -265,6 +308,43 @@ async function submit(code, details) {
     if (e.code === 'QR_INVALID') { try { localStorage.removeItem('qr'); } catch (x) {} renderMain(); }
     toast(e.message || 'Ката кетти', 'err');
   }
+  busy('');
+}
+
+/* ---- Администратор: башкаларды белгилөө ---- */
+const STATE_SHORT = { none: 'келе элек', arrived: 'иште', travel: 'иш сапарда', returned: 'иште', left: 'кетти' };
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+async function openAdmin() {
+  busy('Жүктөлүүдө…');
+  try {
+    const d = await api({ action: 'adminList', deviceKey: deviceKey() });
+    $('aEmp').innerHTML = d.staff.slice().sort((a, b) => a.name.localeCompare(b.name)).map(s =>
+      `<option value="${esc(s.id)}">${esc(s.name)} — ${STATE_SHORT[s.state] || ''}${s.since ? ' (' + s.since + ')' : ''}</option>`).join('');
+    $('aStatus').value = 'arrived';
+    $('aDetailsBox').classList.add('hidden');
+    $('aDetails').value = ''; $('aReason').value = ''; $('aTime').value = '';
+    $('aDate').value = d.today; $('aDate').max = d.today;
+    $('aErr').classList.add('hidden');
+    $('adminBox').classList.remove('hidden');
+  } catch (e) { toast(e.message || 'Ката кетти', 'err'); }
+  busy('');
+}
+function closeAdmin() { $('adminBox').classList.add('hidden'); }
+
+async function submitAdmin() {
+  const err = m => { $('aErr').textContent = m; $('aErr').classList.remove('hidden'); };
+  $('aErr').classList.add('hidden');
+  const status = $('aStatus').value;
+  if ($('aReason').value.trim().length < 3) return err('Себебин жазыңыз.');
+  if (status === 'travel' && $('aDetails').value.trim().length < 3) return err('Иш сапардын багытын жазыңыз.');
+  busy('Жөнөтүлүүдө…');
+  try {
+    const r = await api({ action: 'adminMark', deviceKey: deviceKey(), targetId: $('aEmp').value, status,
+      details: $('aDetails').value, date: $('aDate').value, time: $('aTime').value, reason: $('aReason').value });
+    closeAdmin();
+    toast('✅ Белгиленди: ' + r.date + ' ' + r.time, 'ok');
+  } catch (e) { err(e.message || 'Ката кетти'); }
   busy('');
 }
 
