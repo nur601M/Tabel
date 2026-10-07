@@ -119,6 +119,12 @@ const ST = {
   off:  { label: 'Жумушта эмес',  badge: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',             dot: 'bg-rose-500' }
 };
 
+Object.assign(ST, {
+  leave: { label: 'Өргүүдө',        badge: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',             dot: 'bg-sky-500' },
+  sick:  { label: 'Ооруп жатат',    badge: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300', dot: 'bg-violet-500' },
+  rest:  { label: 'Дем алыш',       badge: 'bg-slate-100 text-slate-600 dark:bg-slate-700/40 dark:text-slate-300',     dot: 'bg-slate-400' }
+});
+
 function deviceId() {
   try {
     let d = localStorage.getItem('dev');
@@ -153,7 +159,7 @@ function render() {
       <div class="text-[11px] sm:text-sm text-slate-500 dark:text-slate-400 leading-tight mt-0.5">${label}</div></button>`;
   $('chips').innerHTML = chip('work', 'Иште', n('work'), 'text-emerald-600') + chip('trip', 'Иш сапарда', n('trip'), 'text-amber-500') + chip('off', 'Жумушта эмес', n('off'), 'text-rose-500');
 
-  const order = { work: 0, trip: 1, off: 2, none: 3 };
+  const order = { work: 0, trip: 1, off: 2, leave: 3, sick: 3, rest: 4, none: 5 };
   const q = query.trim().toLowerCase();
   const items = staff
     .filter(s => (filter === 'all' || s.status === filter) && (!q || (s.name + ' ' + s.position).toLowerCase().includes(q)))
@@ -171,7 +177,8 @@ function card(s) {
     : `<div class="w-14 h-14 rounded-2xl shrink-0 flex items-center justify-center text-white font-bold text-lg" style="background:linear-gradient(135deg,hsl(${hue(s.name)} 65% 45%),hsl(${(hue(s.name) + 40) % 360} 70% 55%))">${esc(initials(s.name))}</div>`;
   let info = '';
   if (s.status === 'work') info = `Келген убактысы: <b>${esc(s.since)}</b>`;
-  if (s.status === 'trip') info = `Кеткен убактысы: <b>${esc(s.since)}</b>${s.details ? '<br>Багыты: ' + esc(s.details) : ''}`;
+  if (s.status === 'trip') info = (s.since ? `Кеткен убактысы: <b>${esc(s.since)}</b>` : '') + (s.details ? (s.since ? '<br>Багыты: ' : '') + esc(s.details) : '');
+  if (['leave', 'sick', 'rest'].includes(s.status) && s.details) info = esc(s.details);
   return `<article class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 shadow-sm hover:shadow-md transition">
     <div class="flex gap-3">${avatar}
       <div class="min-w-0">

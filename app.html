@@ -210,7 +210,7 @@ function renderMain() {
     return;
   }
   $('stText').textContent = STATE_TXT[me.state] || '';
-  $('stSub').textContent = (me.since ? 'Саат ' + me.since : '') + (me.state === 'travel' && me.details ? ' · ' + me.details : '');
+  $('stSub').textContent = (me.since ? 'Саат ' + me.since : '') + (me.state === 'travel' && me.details ? ' · ' + me.details : '') + (me.state === 'none' && me.note ? me.note : '');
   const haveQr = !!qrKey();
   $('qrWarn').classList.toggle('hidden', haveQr);
   $('btns').innerHTML = Object.keys(BTN).map(k => {
