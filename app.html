@@ -257,9 +257,10 @@ function renderMain() {
   $('stText').textContent = STATE_TXT[me.state] || '';
   $('stSub').textContent = (me.since ? 'Саат ' + me.since : '') + (me.state === 'travel' && me.details ? ' · ' + me.details : '') + (me.state === 'none' && me.note ? me.note : '');
   const haveQr = !!qrKey();
-  $('qrWarn').classList.toggle('hidden', haveQr);
+  const needQr = k => (me.qrRequired || []).includes(k);
+  $('qrWarn').classList.toggle('hidden', haveQr || !me.allowed.some(needQr));
   $('btns').innerHTML = Object.keys(BTN).map(k => {
-    const ok = me.allowed.includes(k) && haveQr;
+    const ok = me.allowed.includes(k) && (haveQr || !needQr(k));
     return `<button onclick="press('${k}')" ${ok ? '' : 'disabled'} class="${BTN[k].c} text-white rounded-2xl py-5 text-lg font-bold shadow-md active:scale-[.97] transition ${ok ? '' : 'opacity-30'}">${BTN[k].t}</button>`;
   }).join('');
 }
@@ -272,7 +273,7 @@ function tick() {
 setInterval(tick, 1000); tick();
 
 function press(code) {
-  if (!qrKey()) return renderMain();
+  if ((me.qrRequired || []).includes(code) && !qrKey()) return renderMain();
   if (code === 'travel') { $('tripText').value = ''; $('tripErr').classList.add('hidden'); $('tripBox').classList.remove('hidden'); return; }
   submit(code, '');
 }
