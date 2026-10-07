@@ -202,6 +202,13 @@ const STATE_TXT = {
 function renderMain() {
   $('uName').textContent = me.user.name;
   $('uPos').textContent = me.user.position;
+  if (me.tracked === false) {
+    $('stText').textContent = 'Күнүмдүк белгилөө талап кылынбайт';
+    $('stSub').textContent = 'Сиз үчүн келүү-кетүүнү белгилөө милдеттүү эмес.';
+    $('qrWarn').classList.add('hidden');
+    $('btns').innerHTML = '';
+    return;
+  }
   $('stText').textContent = STATE_TXT[me.state] || '';
   $('stSub').textContent = (me.since ? 'Саат ' + me.since : '') + (me.state === 'travel' && me.details ? ' · ' + me.details : '');
   const haveQr = !!qrKey();
