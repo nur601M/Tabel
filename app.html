@@ -20,6 +20,8 @@
   .up{animation:up .25s ease-out}
   @keyframes spin{to{transform:rotate(360deg)}}
   .spin{animation:spin .8s linear infinite}
+  .fld{margin-top:.375rem;width:100%;border-radius:.75rem;border:1px solid #e2e8f0;padding:.75rem .875rem;font-size:1rem;background:#fff;color:inherit}
+  @media (prefers-color-scheme:dark){.fld{background:#1e293b;border-color:#334155}}
 </style>
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
@@ -81,6 +83,8 @@
 
     <div id="btns" class="px-5 mt-4 grid gap-3"></div>
     <div class="px-5 mt-4 pb-8 grid gap-3">
+      <button id="msgBtn" class="w-full rounded-2xl border border-slate-300 dark:border-slate-700 py-3.5 font-semibold" onclick="openMsgs()">✉️ Администраторго билдирүү <span id="msgBadge" class="hidden ml-1 rounded-full bg-rose-600 text-white text-xs px-2 py-0.5"></span></button>
+      <button id="inboxBtn" class="hidden w-full rounded-2xl bg-teal-700 text-white py-3.5 font-semibold" onclick="openInbox()">📨 Билдирүүлөр <span id="inboxBadge" class="hidden ml-1 rounded-full bg-rose-600 text-white text-xs px-2 py-0.5"></span></button>
       <button id="adminBtn" class="hidden w-full rounded-2xl bg-slate-800 text-white py-3.5 font-semibold" onclick="openAdmin()">👥 Башкаларды белгилөө (администратор)</button>
       <button id="pushBtn" class="hidden w-full rounded-2xl border border-slate-300 dark:border-slate-700 py-3.5 font-semibold" onclick="pushSync(true)">🔔 Эскертмелерди иштетүү</button>
       <button id="install" class="hidden w-full rounded-2xl border border-teal-600 text-teal-700 dark:text-teal-300 py-3.5 font-semibold">📲 Телефонго орнотуу</button>
@@ -99,6 +103,54 @@
       <button onclick="closeTrip()" class="rounded-xl bg-slate-100 dark:bg-slate-800 py-3 font-semibold">Жок</button>
       <button onclick="confirmTrip()" class="rounded-xl bg-amber-500 text-white py-3 font-semibold">Жөнөтүү</button>
     </div>
+  </div>
+</div>
+
+<!-- Кызматкер: администраторго билдирүү -->
+<div id="msgBox" class="hidden fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm flex items-end justify-center" onclick="if(event.target===this)closeMsgs()">
+  <div class="up w-full max-w-md bg-white dark:bg-slate-900 rounded-t-3xl p-5 max-h-[92vh] overflow-y-auto" style="padding-bottom:calc(1.25rem + env(safe-area-inset-bottom))">
+    <h2 class="text-lg font-bold">Администраторго билдирүү</h2>
+    <p class="text-sm text-slate-500 dark:text-slate-400">Бардык администраторлор көрөт, жооп сизге келет.</p>
+
+    <label class="block mt-4 text-sm font-semibold">Эмне жөнүндө?</label>
+    <select id="mType" onchange="mTypeChange()" class="fld">
+      <option value="late">⏰ Кечигем</option>
+      <option value="early">🚪 Эртерээк кетем</option>
+      <option value="absent">🏠 Келе албайм</option>
+      <option value="other">✉️ Башка</option>
+    </select>
+
+    <label class="block mt-3 text-sm font-semibold">Качан?</label>
+    <select id="mDay" class="fld"><option value="today">Бүгүн</option><option value="tomorrow">Эртең</option></select>
+
+    <div id="mMinBox"><label class="block mt-3 text-sm font-semibold">Канча мүнөткө кечигесиз?</label>
+      <input id="mMin" type="number" min="5" max="240" value="15" class="fld"></div>
+    <div id="mTimeBox" class="hidden"><label class="block mt-3 text-sm font-semibold">Саат канчада кетесиз?</label>
+      <input id="mTime" type="time" class="fld"></div>
+
+    <label class="block mt-3 text-sm font-semibold">Түшүндүрмө <span class="font-normal text-slate-400">(милдеттүү эмес)</span></label>
+    <textarea id="mText" rows="2" maxlength="300" class="fld"></textarea>
+
+    <p id="mErr" class="hidden mt-2 text-sm text-rose-600 dark:text-rose-400"></p>
+    <div class="grid grid-cols-2 gap-3 mt-4">
+      <button onclick="closeMsgs()" class="rounded-xl bg-slate-100 dark:bg-slate-800 py-3 font-semibold">Жабуу</button>
+      <button onclick="sendMsg()" class="rounded-xl bg-teal-600 text-white py-3 font-semibold">Жөнөтүү</button>
+    </div>
+
+    <h3 class="mt-6 mb-2 font-bold">Менин билдирүүлөрүм</h3>
+    <div id="mList"></div>
+  </div>
+</div>
+
+<!-- Администратор: келген билдирүүлөр -->
+<div id="inboxBox" class="hidden fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm flex items-end justify-center" onclick="if(event.target===this)closeInbox()">
+  <div class="up w-full max-w-md bg-white dark:bg-slate-900 rounded-t-3xl p-5 max-h-[92vh] overflow-y-auto" style="padding-bottom:calc(1.25rem + env(safe-area-inset-bottom))">
+    <div class="flex items-center justify-between">
+      <h2 class="text-lg font-bold">Билдирүүлөр</h2>
+      <button onclick="closeInbox()" class="text-slate-400 text-2xl leading-none px-2" aria-label="Жабуу">×</button>
+    </div>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mb-3">Биринчи жооп берген администратордун жообу бардыгына көрүнөт.</p>
+    <div id="iList"></div>
   </div>
 </div>
 
@@ -211,6 +263,7 @@ async function init() {
     me = await api({ action: 'me', deviceKey: deviceKey() });
     show('main'); renderMain();
     pushSync(false); updatePushBtn();
+    if (location.hash === '#msg') openMsgByRole();
   } catch (e) {
     if (e.code === 'AUTH') show('register');
     else { $('fatalMsg').textContent = 'Байланыш жок же сервер жооп бербейт. Интернетти текшериңиз. (' + (e.message || e) + ')'; show('fatal'); }
@@ -247,6 +300,9 @@ function renderMain() {
   $('uName').textContent = me.user.name;
   $('uPos').textContent = me.user.position;
   $('adminBtn').classList.toggle('hidden', !me.admin);
+  $('inboxBtn').classList.toggle('hidden', !me.admin);
+  setBadge('inboxBadge', me.admin ? (me.msgBadge || 0) : 0);
+  setBadge('msgBadge', me.admin ? 0 : (me.msgBadge || 0));
   if (me.tracked === false) {
     $('stText').textContent = 'Күнүмдүк белгилөө талап кылынбайт';
     $('stSub').textContent = 'Сиз үчүн келүү-кетүүнү белгилөө милдеттүү эмес.';
@@ -318,12 +374,13 @@ async function submit(code, details) {
 const STATE_SHORT = { none: 'келе элек', arrived: 'иште', travel: 'иш сапарда', returned: 'иште', left: 'кетти' };
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-async function openAdmin() {
+async function openAdmin(pre) {
   busy('Жүктөлүүдө…');
   try {
     const d = await api({ action: 'adminList', deviceKey: deviceKey() });
     $('aEmp').innerHTML = d.staff.slice().sort((a, b) => a.name.localeCompare(b.name)).map(s =>
       `<option value="${esc(s.id)}">${esc(s.name)} — ${STATE_SHORT[s.state] || ''}${s.since ? ' (' + s.since + ')' : ''}</option>`).join('');
+    if (pre) $('aEmp').value = pre;
     $('aStatus').value = 'arrived';
     $('aDetailsBox').classList.add('hidden');
     $('aDetails').value = ''; $('aReason').value = ''; $('aTime').value = '';
@@ -349,6 +406,128 @@ async function submitAdmin() {
     toast('✅ Белгиленди: ' + r.date + ' ' + r.time, 'ok');
   } catch (e) { err(e.message || 'Ката кетти'); }
   busy('');
+}
+
+/* ---- Билдирүүлөр ---- */
+function setBadge(id, n) { const b = $(id); b.textContent = n; b.classList.toggle('hidden', !n); }
+const MSG_ICON = { late: '⏰', early: '🚪', absent: '🏠', other: '✉️' };
+
+function mTypeChange() {
+  const t = $('mType').value;
+  $('mMinBox').classList.toggle('hidden', t !== 'late');
+  $('mTimeBox').classList.toggle('hidden', t !== 'early');
+}
+function msgWhen(m) {
+  const c = m.created;
+  const base = c.slice(8, 10) + '.' + c.slice(5, 7) + ' ' + c.slice(11, 16);
+  return base + (m.date !== c.slice(0, 10) ? ' · ' + m.date.slice(8, 10) + '.' + m.date.slice(5, 7) + ' күнүнө' : '');
+}
+function msgStatus(m) {
+  if (m.status === 'answered') {
+    const ok = m.decision === 'approved';
+    return '<div class="mt-2 rounded-xl px-3 py-2 text-sm ' + (ok ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-50 text-rose-800 dark:bg-rose-500/15 dark:text-rose-300') + '"><b>' +
+      (ok ? '✅ Макул' : '❌ Макул эмес') + '</b> · ' + esc(m.answeredBy) + (m.answer ? '<br>' + esc(m.answer) : '') + '</div>';
+  }
+  return '<div class="mt-2 text-sm text-amber-600 dark:text-amber-300">⏳ Жооп күтүүдө' + (m.readBy ? ' · ' + esc(m.readBy) + ' карап жатат' : '') + '</div>';
+}
+
+async function openMsgs() {
+  $('mErr').classList.add('hidden'); mTypeChange();
+  $('msgBox').classList.remove('hidden');
+  $('mList').innerHTML = '<p class="text-sm text-slate-400">Жүктөлүүдө…</p>';
+  try {
+    const d = await api({ action: 'msgMy', deviceKey: deviceKey() });
+    $('mList').innerHTML = d.messages.length ? d.messages.map(m =>
+      '<div class="rounded-2xl border border-slate-200 dark:border-slate-700 p-3 mb-2"><div class="text-xs text-slate-400">' + esc(msgWhen(m)) +
+      '</div><div class="mt-1">' + (MSG_ICON[m.type] || '') + ' ' + esc(m.text) + '</div>' + msgStatus(m) + '</div>').join('')
+      : '<p class="text-sm text-slate-400">Билдирүү жок</p>';
+    setBadge('msgBadge', 0);
+  } catch (e) { $('mList').innerHTML = ''; toast(e.message || 'Ката кетти', 'err'); }
+}
+function closeMsgs() { $('msgBox').classList.add('hidden'); }
+
+async function sendMsg() {
+  const err = m => { $('mErr').textContent = m; $('mErr').classList.remove('hidden'); };
+  $('mErr').classList.add('hidden');
+  const type = $('mType').value;
+  const body = { action: 'msgSend', deviceKey: deviceKey(), type, day: $('mDay').value, text: $('mText').value };
+  if (type === 'late') body.minutes = Number($('mMin').value);
+  if (type === 'early') { if (!$('mTime').value) return err('Саат канчада кетерин көрсөтүңүз.'); body.time = $('mTime').value; }
+  if (type === 'other' && $('mText').value.trim().length < 3) return err('Билдирүүнү жазыңыз.');
+  busy('Жөнөтүлүүдө…');
+  try {
+    await api(body);
+    $('mText').value = '';
+    toast('✅ Администраторлорго жөнөтүлдү', 'ok');
+    await openMsgs();
+  } catch (e) { err(e.message || 'Ката кетти'); }
+  busy('');
+}
+
+/* Администратор: кирген билдирүүлөр */
+let inbox = [], inboxMe = '', openMsgId = '';
+
+async function openInbox() { $('inboxBox').classList.remove('hidden'); await loadInbox(); }
+function closeInbox() { $('inboxBox').classList.add('hidden'); }
+
+async function loadInbox() {
+  try {
+    const d = await api({ action: 'msgList', deviceKey: deviceKey() });
+    inbox = d.messages; inboxMe = d.me;
+    renderInbox();
+    setBadge('inboxBadge', inbox.filter(m => m.status === 'new' && m.empId !== inboxMe).length);
+  } catch (e) { toast(e.message || 'Ката кетти', 'err'); }
+}
+
+function replyBox(m) {
+  const other = m.readBy && m.readBy !== me.user.name;
+  return '<div class="mt-3 border-t border-slate-200 dark:border-slate-700 pt-3">' +
+    (other ? '<p class="text-sm text-amber-600 mb-2">⚠ ' + esc(m.readBy) + ' буга чейин карап жатат</p>' : '') +
+    '<input id="rAns" maxlength="200" placeholder="Жооп (милдеттүү эмес)" class="fld">' +
+    '<div class="grid grid-cols-2 gap-2 mt-2">' +
+    '<button onclick="reply(\'' + m.id + '\',\'approved\')" class="rounded-xl bg-emerald-600 text-white py-2.5 font-semibold">✅ Макул</button>' +
+    '<button onclick="reply(\'' + m.id + '\',\'declined\')" class="rounded-xl bg-rose-600 text-white py-2.5 font-semibold">❌ Макул эмес</button></div>' +
+    ((m.type === 'late' || m.type === 'absent') ? '<p class="text-xs text-slate-400 mt-2">«Макул» болсо — ошол күнү упай кемитилбейт.</p>' : '') + '</div>';
+}
+
+function renderInbox() {
+  $('iList').innerHTML = inbox.length ? inbox.map(m => {
+    const own = m.empId === inboxMe;
+    return '<div class="rounded-2xl border ' + (m.status === 'new' ? 'border-amber-300' : 'border-slate-200 dark:border-slate-700') + ' p-3 mb-2">' +
+      '<div class="flex justify-between gap-2"><b>' + esc(m.name) + '</b><span class="text-xs text-slate-400">' + esc(msgWhen(m)) + '</span></div>' +
+      '<div class="mt-1">' + (MSG_ICON[m.type] || '') + ' ' + esc(m.text) + '</div>' + msgStatus(m) +
+      '<div class="mt-2 grid grid-cols-2 gap-2">' +
+      ((m.status === 'new' && !own) ? '<button onclick="toggleReply(\'' + m.id + '\')" class="rounded-xl bg-teal-600 text-white py-2 text-sm font-semibold">Жооп берүү</button>' : '<span></span>') +
+      '<button onclick="markFor(\'' + esc(m.empId) + '\')" class="rounded-xl bg-slate-100 dark:bg-slate-800 py-2 text-sm font-semibold">📍 Белгилөө</button></div>' +
+      (m.id === openMsgId ? replyBox(m) : '') + '</div>';
+  }).join('') : '<p class="text-sm text-slate-400">Билдирүү жок</p>';
+}
+
+async function toggleReply(id) {
+  openMsgId = openMsgId === id ? '' : id;
+  renderInbox();
+  if (!openMsgId) return;
+  try {
+    const r = await api({ action: 'msgRead', deviceKey: deviceKey(), id });
+    const m = inbox.find(x => x.id === id);
+    if (m) { m.readBy = r.readBy; renderInbox(); }
+  } catch (e) { /* унчукпайбыз */ }
+}
+
+async function reply(id, decision) {
+  busy('Жөнөтүлүүдө…');
+  try {
+    await api({ action: 'msgReply', deviceKey: deviceKey(), id, decision, answer: ($('rAns') || {}).value || '' });
+    toast('✅ Жооп жөнөтүлдү', 'ok'); openMsgId = '';
+  } catch (e) { toast(e.message || 'Ката кетти', 'err'); }
+  busy(''); await loadInbox();
+}
+
+function markFor(empId) { closeInbox(); openAdmin(empId); }
+
+function openMsgByRole() { if (me) (me.admin ? openInbox() : openMsgs()); }
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', ev => { if (ev.data && ev.data.openMsgs) openMsgByRole(); });
 }
 
 /* ---- Эскертмелер: Push (Android Chrome) ---- */
@@ -380,9 +559,9 @@ async function pushSync(ask) {
       const k = (await api({ action: 'pushKey' })).key;
       sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uToBytes(k) });
     }
-    if (localStorage.getItem('pushEp') !== sub.endpoint) {
-      await api({ action: 'pushSubscribe', deviceKey: deviceKey(), endpoint: sub.endpoint });
-      localStorage.setItem('pushEp', sub.endpoint);
+    if (localStorage.getItem('pushEp') !== sub.endpoint || localStorage.getItem('pushV') !== '2') {
+      await api({ action: 'pushSubscribe', deviceKey: deviceKey(), endpoint: sub.endpoint, keys: (sub.toJSON().keys || {}) });
+      localStorage.setItem('pushEp', sub.endpoint); localStorage.setItem('pushV', '2');
     }
     if (ask) toast('🔔 Эскертмелер иштетилди', 'ok');
   } catch (e) {

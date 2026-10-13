@@ -1,6 +1,6 @@
 // Service Worker: тиркеме тез ачылсын, телефонго орнотулсун жана Push-эскертмелер келсин үчүн.
 // Серверге (Apps Script) болгон суроолор КЭШТЕЛБЕЙТ — алар ар дайым түз барат.
-const CACHE = 'tabel-v2';
+const CACHE = 'tabel-v3';
 const ASSETS = ['./app.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -29,29 +29,41 @@ self.addEventListener('fetch', e => {
 });
 
 // ---------- Push-эскертмелер ----------
-// Сервер бош сигнал жөнөтөт, ал эми тексти бул жерде Бишкектеги убакытка жараша тандалат:
-// түшкө чейин — "келгениңизди белгилеңиз", андан кийин — "кеткениңизди белгилеңиз".
+// Сервер тексти менен (шифрленген) жөнөтөт: { t: аталышы, b: тексти, g: тег, u: ачылуучу дарек }.
+// Текст келбесе (эски жазылуу) — Бишкектеги убакытка жараша стандарттуу эскертме көрсөтүлөт.
 self.addEventListener('push', e => {
-  const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Bishkek', hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
-  const morning = hour < 12;
+  let d = null;
+  try { d = e.data ? e.data.json() : null; } catch (x) { d = null; }
+
+  let title = 'Төрт-Гүл айыл өкмөтү', body, tag = 'tabel', url = './app.html';
+  if (d && d.b) {
+    title = d.t || title; body = d.b; tag = d.g || tag; url = d.u || url;
+  } else {
+    const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Bishkek', hour: '2-digit', hourCycle: 'h23' }).format(new Date()));
+    const morning = hour < 12;
+    body = morning ? 'Жумушка келгениңизди белгилеңиз' : 'Жумуштан кеткениңизди белгилеңиз';
+    tag = morning ? 'tabel-in' : 'tabel-out';
+  }
+
   e.waitUntil(
-    self.registration.showNotification('Төрт-Гүл айыл өкмөтү', {
-      body: morning ? 'Жумушка келгениңизди белгилеңиз' : 'Жумуштан кеткениңизди белгилеңиз',
-      icon: 'icon-192.png',
-      badge: 'icon-192.png',
-      tag: morning ? 'tabel-in' : 'tabel-out',
-      renotify: true,
-      data: { url: './app.html' }
+    self.registration.showNotification(title, {
+      body, tag, icon: 'icon-192.png', badge: 'icon-192.png', renotify: true, data: { url }
     })
   );
 });
 
 self.addEventListener('notificationclick', e => {
   e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || './app.html';
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-      for (const c of list) if ('focus' in c) return c.focus();
-      return clients.openWindow('./app.html');
+      for (const c of list) {
+        if ('focus' in c) {
+          c.postMessage({ openMsgs: url.indexOf('#msg') !== -1 });
+          return c.focus();
+        }
+      }
+      return clients.openWindow(url);
     })
   );
 });
