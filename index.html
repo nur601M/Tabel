@@ -25,9 +25,7 @@
     <p class="text-teal-100 text-sm sm:text-base font-semibold tracking-wide">Төрт-Гүл айыл аймагынын айыл өкмөтү</p>
     <h1 class="mt-1 text-3xl sm:text-4xl font-extrabold leading-tight">Онлайн табло</h1>
     <div class="mt-3 max-w-3xl space-y-3 text-teal-50/95 text-sm sm:text-base leading-relaxed">
-      <p>Бул система Кыргыз Республикасынын Конституциясында, «Жергиликтүү мамлекеттик администрация жана жергиликтүү өз алдынча башкаруу органдары жөнүндө» 
-        жана «Мамлекеттик жарандык кызмат жана муниципалдык кызмат жөнүндө» мыйзамдарында белгиленген ачык-айкындуулук, калк алдында отчеттуулук жана жергиликтүү коомчулуктун башкарууга катышуу 
-        укугу принциптерин ишке ашыруу максатында Төрт-Гүл айыл аймагынын айыл өкмөтү тарабынан киргизилди.</p>
+      <p>Бул система Кыргыз Республикасынын Конституциясында, «Жергиликтүү өз алдынча башкаруу жөнүндө» жана «Муниципалдык кызмат жөнүндө» мыйзамдарында белгиленген ачык-айкындуулук, калк алдында отчеттуулук жана жергиликтүү коомчулуктун башкарууга катышуу укугу принциптерин ишке ашыруу максатында Төрт-Гүл айыл аймагынын айыл өкмөтү тарабынан киргизилди.</p>
       <p><b>Урматтуу жаран!</b> Эми үйүңүздөн чыкпай эле кызматкердин иште же иште эместигин билип, көрсөтүлгөн байланыш номерлери аркылуу байланышып, андан кийин айыл өкмөтүнө келсеңиз болот.</p>
     </div>
     <p class="mt-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold">⭐ Кызматкердин ишине баа берип, пикириңизди калтырууну унутпаңыз</p>
@@ -128,7 +126,8 @@ const ST = {
 
 Object.assign(ST, {
   leave: { label: 'Өргүүдө',        badge: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',             dot: 'bg-sky-500' },
-  sick:  { label: 'Ооруп жатат',    badge: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300', dot: 'bg-violet-500' },
+  sick:  { label: 'Оорулуу',    badge: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300', dot: 'bg-violet-500' },
+  excused: { label: 'Суранды',     badge: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300', dot: 'bg-indigo-500' },
   rest:  { label: 'Дем алыш',       badge: 'bg-slate-100 text-slate-600 dark:bg-slate-700/40 dark:text-slate-300',     dot: 'bg-slate-400' }
 });
 
@@ -164,9 +163,10 @@ function render() {
     `<button onclick="setFilter('${key}')" class="rounded-2xl p-3 sm:p-4 text-left shadow-sm border transition active:scale-95 ${filter === key ? 'bg-white dark:bg-slate-800 border-teal-500 ring-2 ring-teal-500/30' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'}">
       <div class="text-2xl sm:text-3xl font-extrabold ${color}">${count}</div>
       <div class="text-[11px] sm:text-sm text-slate-500 dark:text-slate-400 leading-tight mt-0.5">${label}</div></button>`;
-  $('chips').innerHTML = chip('work', 'Иште', n('work'), 'text-emerald-600') + chip('trip', 'Иш сапарда', n('trip'), 'text-amber-500') + chip('off', 'Жумушта эмес', n('off'), 'text-rose-500');
+  $('chips').innerHTML = chip('work', 'Иште', n('work'), 'text-emerald-600') + chip('trip', 'Иш сапарда', n('trip'), 'text-amber-500') + chip('off', 'Жумушта эмес', n('off'), 'text-rose-500') +
+    chip('excused', 'Суранды', n('excused'), 'text-indigo-600') + chip('leave', 'Өргүүдө', n('leave'), 'text-sky-600') + chip('sick', 'Оорулуу', n('sick'), 'text-violet-600');
 
-  const order = { work: 0, trip: 1, off: 2, leave: 3, sick: 3, rest: 4, none: 5 };
+  const order = { work: 0, trip: 1, off: 2, excused: 3, leave: 3, sick: 3, rest: 4, none: 5 };
   const q = query.trim().toLowerCase();
   const items = staff
     .filter(s => (filter === 'all' || s.status === filter) && (!q || (s.name + ' ' + s.position).toLowerCase().includes(q)))
@@ -186,6 +186,7 @@ function card(s) {
   if (s.status === 'work') info = `Келген убактысы: <b>${esc(hm(s.since))}</b>`;
   if (s.status === 'trip') info = (s.since ? `Кеткен убактысы: <b>${esc(hm(s.since))}</b>` : '') + (s.details ? (s.since ? '<br>Багыты: ' : '') + esc(s.details) : '');
   if (['leave', 'sick', 'rest'].includes(s.status) && s.details) info = esc(s.details);
+  if (s.status === 'excused') info = 'Администратордун уруксаты менен';
   return `<article class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 shadow-sm hover:shadow-md transition">
     <div class="flex gap-3">${avatar}
       <div class="min-w-0">
